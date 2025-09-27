@@ -1,21 +1,13 @@
 package com.amgqa.kata.models;
 
+import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class CreatedBooking {
-    private Integer bookingid;
+    private int bookingid;
     private Booking booking;
-
-    public CreatedBooking() {}
-
-    public CreatedBooking(Integer bookingid, Booking booking) {
-        this.bookingid = bookingid;
-        this.booking = booking;
-    }
-
-    public Integer getBookingid() {
-        return bookingid;
-    }
-
-    public Booking getBooking() {
-        return booking;
-    }
 }

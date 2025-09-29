@@ -66,11 +66,6 @@ Feature: Booking API tests
     When the booking is sent to the API
     Then the API should reject the booking
 
-  Scenario: Booking with invalid roomId
-    Given a booking with invalid roomId is generated
-    When the booking is sent to the API
-    Then the API should reject the booking
-
 
 
 

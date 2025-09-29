@@ -4,135 +4,139 @@ import com.amgqa.kata.models.Booking;
 import com.amgqa.kata.models.BookingDates;
 import net.datafaker.Faker;
 
+import java.util.*;
 import java.time.LocalDate;
-import java.util.Random;
-import java.util.UUID;
-
+import java.time.format.DateTimeFormatter;
 
 public class TestDataFactory {
 
     private static final Faker faker = new Faker();
-    private static final Random RANDOM = new Random();
+    private static final Random random = new Random();
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    /**
-     * Generates a valid Booking object with randomized data.
-     * @param roomId the room to book
-     * @return Booking object ready for POST request
-     */
-    public static Booking createValidBooking(int roomId) {
-        LocalDate today = LocalDate.now();
-
-        BookingDates dates = new BookingDates(
-                today.plusDays(1).toString(),   // checkin
-                today.plusDays(5).toString()    // checkout
-        );
-
-        String firstname = faker.name().firstName();
-        String lastname = faker.name().lastName();
-        boolean depositpaid = RANDOM.nextBoolean();
-        String email = firstname.toLowerCase() + "." + lastname.toLowerCase() + UUID.randomUUID() + "@example.com";
-        String phone = generateRandomPhone(11, 21);
-
-        return new Booking(
-                roomId,
-                firstname,
-                lastname,
-                depositpaid,
-                email,
-                phone,
-                dates
-        );
+    /** ---------------- Positive Booking ---------------- */
+    public static Booking createBooking() {
+        return createAvailableBooking(getDefaultCheckin(), getDefaultCheckout());
     }
 
-    /**
-     * Negative test case: invalid email
-     */
-    public static Booking createBookingWithInvalidEmail(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setEmail("invalid-email");
-        return booking;
+    public static Booking createAvailableBooking(String checkin, String checkout) {
+        int roomId = RoomFactory.createRoom();
+        String firstname = randomFirstname();
+        String lastname = randomLastname();
+        String email = randomEmail(firstname, lastname);
+        String phone = randomValidPhone();
+        return new Booking(roomId, firstname, lastname, true, email, phone, new BookingDates(checkin, checkout));
     }
 
-    /**
-     * Negative test case: firstname too short (<3 chars) and too long (>18 chars)
-     */
-    public static Booking createBookingWithShortFirstname(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setFirstname("Mo"); // < 3 chars
-        return booking;
+    /** ---------------- Field Generators ---------------- */
+    public static String randomFirstname() {
+        String name;
+        do { name = faker.name().firstName().replaceAll("[^a-zA-Z]", ""); }
+        while (name.length() < 3 || name.length() > 18);
+        return name;
     }
 
-    public static Booking createBookingWithLongFirstname(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setFirstname("ABCDEFGHIJKLMNOPQRS"); // > 18 chars
-        return booking;
+    public static String randomLastname() {
+        String name;
+        do { name = faker.name().lastName().replaceAll("[^a-zA-Z]", ""); }
+        while (name.length() < 3 || name.length() > 30);
+        return name;
     }
 
-    /**
-     * Negative test case: lastname too short (<3 chars) and too long (>30 chars)
-     */
-
-    public static Booking createBookingWithShortLastname(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setLastname("Po");  // < 3 chars
-        return booking;
+    public static String randomEmail(String firstname, String lastname) {
+        return firstname.toLowerCase() + "." + lastname.toLowerCase() + "@example.com";
     }
 
-    public static Booking createBookingWithLongLastname(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setLastname("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDE");  // > 30 chars
-        return booking;
-    }
-
-    /**
-     * Negative test case: checkout before checkin
-     */
-    public static Booking createBookingWithInvalidDates(int roomId) {
-        LocalDate today = LocalDate.now();
-
-        BookingDates invalidDates = new BookingDates(
-                today.plusDays(5).toString(),
-                today.plusDays(1).toString()
-        );
-
-        Booking booking = createValidBooking(roomId);
-        booking.setBookingdates(invalidDates);
-        return booking;
-    }
-
-    /**
-     * roomId invalid: negative
-     */
-    public static Booking createBookingWithInvalidRoomId() {
-        return createValidBooking(-1);
-    }
-
-    /**
-     * phone too short (<11 chars) and too long (>21 chars)
-     */
-    public static Booking createBookingWithShortPhone(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setPhone(generateRandomPhone(5, 5));    // too short
-        return booking;
-    }
-
-    public static Booking createBookingWithLongPhone(int roomId) {
-        Booking booking = createValidBooking(roomId);
-        booking.setPhone(generateRandomPhone(25, 25));    // too long
-        return booking;
-    }
-
-    /**
-     * Utility Methods
-     */
-
-    private static String generateRandomPhone(int minLength, int maxLength) {
-        int length = minLength + RANDOM.nextInt(maxLength - minLength + 1);
+    public static String randomValidPhone() {
+        int length = 11 + random.nextInt(11);
         StringBuilder sb = new StringBuilder();
-        for (int i; i < length; i++) {
-            sb.append(RANDOM.nextInt(10))
-        }
+        for (int i = 0; i < length; i++) sb.append(random.nextInt(10));
         return sb.toString();
     }
 
+    /** ---------------- Negative Bookings ---------------- */
+    public static Booking createBookingWithShortFirstname(String checkin, String checkout) {
+        Booking b = createAvailableBooking(checkin, checkout);
+        String shortName = faker.lorem().characters(1, 2).replaceAll("[^a-zA-Z]", "");
+        b.setFirstname(shortName);
+        b.setEmail(randomEmail(shortName, b.getLastname()));
+        return b;
+    }
+
+    public static Booking createBookingWithLongFirstname(String checkin, String checkout) {
+        Booking b = createAvailableBooking(checkin, checkout);
+        String longName = faker.lorem().characters(19, 25).replaceAll("[^a-zA-Z]", "");
+        b.setFirstname(longName);
+        b.setEmail(randomEmail(longName, b.getLastname()));
+        return b;
+    }
+
+    public static Booking createBookingWithShortLastname(String checkin, String checkout) {
+        Booking b = createAvailableBooking(checkin, checkout);
+        String shortName = faker.lorem().characters(1, 2).replaceAll("[^a-zA-Z]", "");
+        b.setLastname(shortName);
+        b.setEmail(randomEmail(b.getFirstname(), shortName));
+        return b;
+    }
+
+    public static Booking createBookingWithLongLastname(String checkin, String checkout) {
+        Booking b = createAvailableBooking(checkin, checkout);
+        String longName = faker.lorem().characters(31, 40).replaceAll("[^a-zA-Z]", "");
+        b.setLastname(longName);
+        b.setEmail(randomEmail(b.getFirstname(), longName));
+        return b;
+    }
+
+    public static Booking createBookingWithInvalidPhone(String checkin, String checkout) {
+        Booking b = createAvailableBooking(checkin, checkout);
+        b.setPhone(randomValidPhone().substring(0, 5));
+        return b;
+    }
+
+    public static Booking createBookingWithTooLongPhone(String checkin, String checkout) {
+        Booking b = createAvailableBooking(checkin, checkout);
+        StringBuilder sb = new StringBuilder(randomValidPhone());
+        while (sb.length() <= 21) sb.append(random.nextInt(10));
+        b.setPhone(sb.toString());
+        return b;
+    }
+
+    public static Booking createBookingWithInvalidRoomId() {
+        String firstname = randomFirstname();
+        String lastname = randomLastname();
+        return new Booking(-1, firstname, lastname, true, randomEmail(firstname, lastname),
+                randomValidPhone(), randomBookingDates());
+    }
+
+    /** ---------------- Random Dates ---------------- */
+    public static BookingDates randomBookingDates() {
+        LocalDate checkin = LocalDate.now().plusDays(random.nextInt(30));
+        LocalDate checkout = checkin.plusDays(1 + random.nextInt(10));
+        return new BookingDates(checkin.format(formatter), checkout.format(formatter));
+    }
+
+    /** ---------------- Default Dates ---------------- */
+    public static String getDefaultCheckin() {
+        return LocalDate.now().plusDays(1).format(formatter);
+    }
+
+    public static String getDefaultCheckout() {
+        return LocalDate.now().plusDays(2).format(formatter);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

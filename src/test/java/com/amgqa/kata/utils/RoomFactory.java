@@ -21,18 +21,20 @@ public class RoomFactory {
                 Response response = given()
                         .spec(BaseApiTest.getCookieAuthSpec())
                         .header("Content-Type", "application/json")
-                        .header("Accept", "*/*")
-                        .header("Origin", "https://automationintesting.online")
+                        .header("Accept", "application/json")
                         .body(jsonBody)
-                        .redirects().follow(false)  // important: disable automatic redirects
-                        .post("/api/room/");
+                        .post("/api/room");
 
                 int status = response.statusCode();
 
                 if (status == 201 || status == 200) {
-                    int roomId = response.jsonPath().getInt("roomId");
-                    System.out.println("Room created successfully: roomNumber=" + roomNumber + ", roomId=" + roomId);
-                    return roomId;
+                    boolean created = response.jsonPath().getBoolean("success");
+                    if (created) {
+                        System.out.println("✅ Room created successfully: roomNumber=" + roomNumber);
+                        return roomNumber;
+                    } else {
+                        System.err.println("Attempt " + attempt + " failed: success=false, body=" + response.getBody().asString());
+                    }
                 } else {
                     System.err.println("Attempt " + attempt + " failed: status=" + status + ", body=" + response.getBody().asString());
                 }
@@ -59,6 +61,7 @@ public class RoomFactory {
                 """, roomNumber, roomNumber);
     }
 }
+
 
 
 

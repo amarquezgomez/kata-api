@@ -13,7 +13,6 @@ public abstract class BaseApiTest {
 
     private static String authToken;
     private static long tokenTimestamp = 0;  // epoch millis
-
     private static final long TOKEN_EXPIRY_MS = 9 * 60 * 1000; // 9 minutes
 
     public static synchronized void init() {

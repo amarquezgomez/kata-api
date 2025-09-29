@@ -2,58 +2,97 @@ package com.amgqa.kata.config;
 
 import io.restassured.RestAssured;
 import io.restassured.specification.RequestSpecification;
-import org.junit.jupiter.api.BeforeAll;
 
 import static io.restassured.RestAssured.given;
 
 public abstract class BaseApiTest {
 
-    // Request specifications
-    protected static RequestSpecification requestSpec;  // for unauthenticated requests
-    protected static RequestSpecification authRequestSpec;  // for secured requests
+    private static RequestSpecification requestSpec;       // unauthenticated
+    private static RequestSpecification bearerAuthSpec;    // Bearer token for POST
+    private static RequestSpecification cookieAuthSpec;    // Cookie token for GET
 
-    // Auth token
-    protected static String authToken;
+    private static String authToken;
+    private static long tokenTimestamp = 0;  // epoch millis
 
-    @BeforeAll
-    public static void setup() {
-        // Base URI configurable via system property or default
-        RestAssured.baseURI = System.getProperty("api.base", "https://automationintesting.online/");
+    private static final long TOKEN_EXPIRY_MS = 9 * 60 * 1000; // 9 minutes
 
-        // Default request spec (no auth)
-        requestSpec = RestAssured.given()
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json");
+    public static synchronized void init() {
+        long now = System.currentTimeMillis();
+        if (requestSpec != null && authToken != null && now - tokenTimestamp < TOKEN_EXPIRY_MS) {
+            return; // already initialized and token still valid
+        }
 
-        // Authenticate once and setup authRequestSpec
-        authenticate();
+        // Base URL
+        RestAssured.baseURI = System.getProperty("api.base", "https://automationintesting.online");
+
+        // Default spec
+        if (requestSpec == null) {
+            requestSpec = given()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json");
+        }
+
+        try {
+            // Username/password from environment or default
+            String username = System.getenv().getOrDefault("API_USERNAME", "admin");
+            String password = System.getenv().getOrDefault("API_PASSWORD", "password");
+
+            String authBody = String.format("""
+                    {
+                        "username": "%s",
+                        "password": "%s"
+                    }
+                    """, username, password);
+
+            // Get token from /api/auth/login
+            authToken = requestSpec
+                    .body(authBody)
+                    .when()
+                    .post("/api/auth/login")
+                    .then()
+                    .statusCode(200)
+                    .extract()
+                    .path("token");
+
+            tokenTimestamp = now;
+
+            // Bearer token spec (for POST /booking)
+            bearerAuthSpec = given()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .header("Authorization", "Bearer " + authToken);
+
+            // Cookie token spec (for GET /booking/{id})
+            cookieAuthSpec = given()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .cookie("token", authToken);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize BaseApiTest request specs", e);
+        }
     }
 
-    /**
-     * Authenticate against /auth endpoint and setup authRequestSpec for secured requests
-     */
-    private static void authenticate() {
-        String body = """
-                {
-                    "username": "admin",
-                    "password": "password"
-                }
-                """;
+    // ---------------- Getters ----------------
+    public static RequestSpecification getRequestSpec() {
+        init();
+        return requestSpec;
+    }
 
-        authToken = RestAssured.given()
-                .header("Content-Type", "application/json")
-                .body(body)
-                .when()
-                .post("/auth")
-                .then()
-                .statusCode(200)
-                .extract()
-                .path("token");
+    public static RequestSpecification getBearerAuthSpec() {
+        init();
+        return bearerAuthSpec;
+    }
 
-        // Authenticated request spec for PUT/PATCH/DELETE
-        authRequestSpec = RestAssured.given()
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("Cookie", "token=" + authToken);
+    public static RequestSpecification getCookieAuthSpec() {
+        init();
+        return cookieAuthSpec;
+    }
+
+    public static String getAuthToken() {
+        init();
+        return authToken;
     }
 }
+
+

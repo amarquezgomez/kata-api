@@ -11,8 +11,8 @@ public class TestDataFactory {
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private static String randomDateWithin90Days(int plusDays) {
-        return LocalDate.now().plusDays(plusDays).format(formatter);
+    private static String randomDate30DaysLater() {
+        return LocalDate.now().plusDays(30).format(formatter);
     }
 
     private static int randomValidRoomId() {
@@ -20,18 +20,17 @@ public class TestDataFactory {
     }
 
     private static String randomPhone(int length) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            sb.append(ThreadLocalRandom.current().nextInt(0, 10));
-        }
-        return sb.toString();
+        return ThreadLocalRandom.current()
+                .ints(length, 0, 10)
+                .mapToObj(String::valueOf)
+                .reduce("", String::concat);
     }
 
     // =========================
     // VALID booking generator
     // =========================
     public static Booking createBooking() {
-        String checkin = randomDateWithin90Days(30);
+        String checkin = randomDate30DaysLater();
         String checkout = LocalDate.parse(checkin).plusDays(3).format(formatter);
 
         return new Booking(
@@ -49,77 +48,70 @@ public class TestDataFactory {
     // Negative booking generators
     // =========================
     public static Booking createBookingWithShortFirstname(String checkin, String checkout) {
-        return new Booking(
-                randomValidRoomId(),
-                "J", // too short
-                "Doe",
-                true,
-                "short@test.com",
-                randomPhone(11),
-                new BookingDates(checkin, checkout)
-        );
+        return createBookingWithFirstnameLength(2, checkin, checkout);
     }
 
     public static Booking createBookingWithLongFirstname(String checkin, String checkout) {
-        return new Booking(
-                randomValidRoomId(),
-                "J".repeat(51), // too long
-                "Doe",
-                true,
-                "long@test.com",
-                randomPhone(11),
-                new BookingDates(checkin, checkout)
-        );
+        return createBookingWithFirstnameLength(51, checkin, checkout);
     }
 
     public static Booking createBookingWithShortLastname(String checkin, String checkout) {
-        return new Booking(
-                randomValidRoomId(),
-                "John",
-                "D", // too short
-                true,
-                "shortlastname@test.com",
-                randomPhone(11),
-                new BookingDates(checkin, checkout)
-        );
+        return createBookingWithLastnameLength(2, checkin, checkout);
     }
 
     public static Booking createBookingWithLongLastname(String checkin, String checkout) {
+        return createBookingWithLastnameLength(51, checkin, checkout);
+    }
+
+    public static Booking createBookingWithInvalidPhone(String checkin, String checkout) {
+        return createBookingWithPhoneLength(5, checkin, checkout); // too short
+    }
+
+    public static Booking createBookingWithTooLongPhone(String checkin, String checkout) {
+        return createBookingWithPhoneLength(25, checkin, checkout); // too long
+    }
+
+    // =========================
+    // Boundary / edge generators
+    // =========================
+    public static Booking createBookingWithFirstnameLength(int length, String checkin, String checkout) {
         return new Booking(
                 randomValidRoomId(),
-                "John",
-                "D".repeat(51), // too long
+                "J".repeat(length),
+                "Doe",
                 true,
-                "longlastname@test.com",
+                "firstname" + length + "@test.com",
                 randomPhone(11),
                 new BookingDates(checkin, checkout)
         );
     }
 
-    public static Booking createBookingWithInvalidPhone(String checkin, String checkout) {
+    public static Booking createBookingWithLastnameLength(int length, String checkin, String checkout) {
         return new Booking(
                 randomValidRoomId(),
                 "John",
-                "Doe",
+                "D".repeat(length),
                 true,
-                "invalidphone@test.com",
-                randomPhone(5), // too short (<11)
+                "lastname" + length + "@test.com",
+                randomPhone(11),
                 new BookingDates(checkin, checkout)
         );
     }
 
-    public static Booking createBookingWithTooLongPhone(String checkin, String checkout) {
+    public static Booking createBookingWithPhoneLength(int length, String checkin, String checkout) {
         return new Booking(
                 randomValidRoomId(),
                 "John",
                 "Doe",
                 true,
-                "toolongphone@test.com",
-                randomPhone(25), // too long (>21)
+                "phone" + length + "@test.com",
+                randomPhone(length),
                 new BookingDates(checkin, checkout)
         );
     }
 }
+
+
 
 
 

@@ -5,8 +5,7 @@ Feature: Booking API tests
   # ========================
 
   Scenario: Create and verify a valid booking
-    Given a valid booking is generated
-    When the booking is sent to the API
+    Given a valid booking is created in the system
     Then the booking can be retrieved and verified
 
   Scenario: Get an existing booking by ID

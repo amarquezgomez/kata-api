@@ -101,16 +101,3 @@ mvn clean test
 
 ---
 
-## **Suggested Commit Log**
-
-```text
-commit 1: Initial project structure (src, pom.xml, resources)
-commit 2: Added BaseApiTest configuration for RestAssured
-commit 3: Created Booking models (Booking, CreatedBooking, BookingDates)
-commit 4: Implemented TestDataFactory with valid, negative, and boundary generators
-commit 5: Added BookingSteps positive scenarios (create, get, update, delete)
-commit 6: Added negative booking scenarios (firstname/lastname/phone edge cases)
-commit 7: Implemented Cucumber Hooks for API setup
-commit 8: Fixed zero-argument constructor issue for Cucumber
-commit 9: Cleaned code, added comments, structured methods, verified scenario coverage
-commit 10: Added README.md with project overview, setup, and execution instructions
